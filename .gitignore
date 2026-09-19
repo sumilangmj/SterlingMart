@@ -7,3 +7,4 @@ node_modules/
 .clerk/
 .convex/
 convex/_generated/
+.vercel
