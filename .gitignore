@@ -6,5 +6,4 @@ node_modules/
 !.env.example
 .clerk/
 .convex/
-convex/_generated/
 .vercel
