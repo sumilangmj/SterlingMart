@@ -58,3 +58,26 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+## Android and iOS apps
+
+SterlingMart uses Capacitor for native Android and iOS shells around the same responsive Next.js frontend. The native apps use the existing Clerk authentication and Convex commerce backend, so carts, favorites, checkout orders, role dashboards, and content stay consistent across web and mobile.
+
+Set `CAPACITOR_SERVER_URL` to the deployed HTTPS SterlingMart URL before syncing a release build. The value must be reachable from the device; do not ship a localhost or cleartext URL in production.
+
+```bash
+npm install
+CAPACITOR_SERVER_URL=https://your-domain.example npm run mobile:sync
+npm run mobile:open:android
+npm run mobile:open:ios
+```
+
+For local device development, use a LAN address that the phone can reach and allow cleartext traffic only for that development session:
+
+```bash
+CAPACITOR_SERVER_URL=http://192.168.1.10:3000 npm run mobile:sync
+```
+
+Android builds require Android Studio and an Android SDK. iOS builds require macOS, Xcode, Swift Package Manager, and a valid Apple signing team. Run `npm run dev -- --hostname 0.0.0.0` in a separate terminal when using a local device server.
+
+The native shells also register the `sterlingmart://` URL scheme. For example, `sterlingmart://products/signature-ring` opens the product route inside the app; wire this scheme into email, push, or campaign links when those channels are connected.

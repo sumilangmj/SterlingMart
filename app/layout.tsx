@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/providers";
 import { CartProvider } from "@/components/cart/cart-provider";
+import { MobileRuntime } from "@/components/mobile/mobile-runtime";
 import { SiteChrome } from "@/components/storefront/site-chrome";
 import "./globals.css";
 
@@ -31,12 +32,20 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#2f1b10",
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Providers>
           <CartProvider>
+            <MobileRuntime />
             <SiteChrome>{children}</SiteChrome>
           </CartProvider>
         </Providers>
