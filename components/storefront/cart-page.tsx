@@ -25,12 +25,12 @@ export function CartPage() {
   }
 
   if (isLoading) {
-    return <div className="shell page-section"><div className="cart-skeleton" aria-busy="true" aria-label="Loading cart" /></div>;
+    return <div className="shell page-section" data-scroll-reveal="cart-loading"><div className="cart-skeleton" aria-busy="true" aria-label="Loading cart" /></div>;
   }
 
   if (items.length === 0) {
     return (
-      <section className="shell page-section empty-page" aria-labelledby="cart-heading">
+      <section className="shell page-section empty-page" data-scroll-reveal="cart-empty" aria-labelledby="cart-heading">
         <p className="eyebrow">Your cart</p>
         <h1 id="cart-heading">A little more room to fill.</h1>
         <p>There’s nothing here yet. Start with a piece that feels entirely your own.</p>
@@ -40,7 +40,7 @@ export function CartPage() {
   }
 
   return (
-    <section className="shell page-section" aria-labelledby="cart-heading">
+    <section className="shell page-section" data-scroll-reveal="cart" aria-labelledby="cart-heading">
       <div className="page-heading-row">
         <div>
           <p className="eyebrow">Your cart</p>

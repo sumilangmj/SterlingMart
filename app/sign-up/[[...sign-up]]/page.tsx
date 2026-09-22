@@ -3,7 +3,7 @@ import { BrandLogo } from "@/components/branding/brand-logo";
 
 export default function SignUpPage() {
   return (
-    <div className="auth-page shell">
+    <div className="auth-page shell" data-scroll-reveal="auth">
       <div>
         <BrandLogo className="auth-brand-logo" priority />
         <p className="eyebrow">Join SterlingMart</p>

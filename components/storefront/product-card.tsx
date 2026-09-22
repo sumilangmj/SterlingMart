@@ -6,7 +6,7 @@ import type { Product } from "@/lib/types";
 
 export function ProductCard({ product, onQuickView }: { product: Product; onQuickView?: () => void }) {
   return (
-    <article className="product-card">
+    <article className="product-card" data-scroll-reveal="product">
       <div className="product-image-wrap">
         <Link className={`product-image product-image-${product.accent}`} href={`/products/${product.slug}`}>
           <Image

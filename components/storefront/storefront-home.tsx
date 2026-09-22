@@ -28,7 +28,7 @@ export function StorefrontHome() {
 
   return (
     <>
-      <section className="hero shell">
+      <section className="hero shell" data-scroll-reveal="hero">
         <div className="hero-copy">
           <p className="eyebrow">Fine jewelry, thoughtfully made</p>
           <h1>Pieces that hold the light.</h1>
@@ -40,14 +40,14 @@ export function StorefrontHome() {
             <Link className="hero-text-link" href="/sign-up">Join the circle</Link>
           </div>
         </div>
-        <div className="hero-art" aria-label="The SM Sterling Mart HD logo presented on dark gold marble" role="img">
+        <div className="hero-art" data-scroll-parallax aria-label="The SM Sterling Mart HD logo presented on dark gold marble" role="img">
           <div className="hero-art-note">No. 01<br />The signature edit</div>
           <BrandLogo className="hero-art-logo" priority />
           <span className="hero-art-label">STERLING / FINE JEWELRY</span>
         </div>
       </section>
 
-      <section className="collection shell" id="collection" aria-labelledby="collection-heading">
+      <section className="collection shell" id="collection" data-scroll-reveal="collection" aria-labelledby="collection-heading">
         <div className="section-heading">
           <div>
           <p className="eyebrow">The collection</p>
@@ -86,7 +86,7 @@ export function StorefrontHome() {
         )}
       </section>
 
-      <section className="manifesto-band">
+      <section className="manifesto-band" data-scroll-reveal="manifesto">
         <div className="shell manifesto-inner">
           <p className="eyebrow">Our point of view</p>
           <p className="manifesto-copy">Jewelry should feel like you: considered, luminous, and entirely your own.</p>

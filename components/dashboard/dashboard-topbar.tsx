@@ -44,7 +44,7 @@ const roleQuickLinks: Record<Role, Array<{ label: string; href: string; detail: 
   ],
 };
 
-export function DashboardTopbar({ role, period = "30D" }: { role: Role; period?: Period }) {
+export function DashboardTopbar({ role, period = "30D", menuOpen = false, onMenuToggle }: { role: Role; period?: Period; menuOpen?: boolean; onMenuToggle?: () => void }) {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const router = useRouter();
   const [modal, setModal] = useState<Modal>(null);
@@ -89,7 +89,12 @@ export function DashboardTopbar({ role, period = "30D" }: { role: Role; period?:
   return (
     <>
       <header className="dashboard-topbar">
-        <div className="dashboard-topbar-brand" aria-hidden="true" />
+        <div className="dashboard-topbar-brand">
+          <button className="dashboard-menu-toggle" type="button" aria-label={`${menuOpen ? "Close" : "Open"} dashboard navigation`} aria-expanded={menuOpen} aria-controls="dashboard-navigation" onClick={onMenuToggle}>
+            <span aria-hidden="true"><i /><i /><i /></span>
+          </button>
+          <span>{roleLabels[role]} workspace</span>
+        </div>
         <div className="dashboard-topbar-actions">
           <form className="dashboard-search" onSubmit={openSearch} role="search">
             <label className="sr-only" htmlFor={`dashboard-search-trigger-${role}`}>Search products, orders, or customers</label>
@@ -99,7 +104,6 @@ export function DashboardTopbar({ role, period = "30D" }: { role: Role; period?:
           <button className="dashboard-date" type="button" aria-haspopup="dialog" aria-expanded={modal === "period"} onClick={() => setModal("period")}><span aria-hidden="true">{role === "customer" ? "♡" : role === "vendor" ? "◇" : role === "staff" ? "◌" : "▣"}</span><span>{role === "admin" ? "Reporting" : "Workspace"}: {currentPeriod.key}</span><b aria-hidden="true">⌄</b></button>
           <button className="dashboard-notification" type="button" aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} aria-haspopup="dialog" aria-expanded={modal === "notifications"} onClick={() => setModal("notifications")}><span aria-hidden="true">♧</span>{unread > 0 && <span className="dashboard-notification-dot" aria-label={`${unread} unread`} />}</button>
           <div className="dashboard-user">
-            <div className="dashboard-user-control"><UserButton /></div>
             <button className="dashboard-user-trigger" type="button" aria-haspopup="dialog" aria-expanded={modal === "account"} onClick={() => setModal("account")}><span className={`dashboard-user-avatar dashboard-user-avatar-${role}`} aria-hidden="true">{role === "admin" ? "S" : role.charAt(0).toUpperCase()}</span><span className="dashboard-user-copy"><strong>{role === "admin" ? "Store Admin" : `${roleLabels[role]} Account`}</strong><span>{roleLabels[role]}</span></span><span className="dashboard-user-chevron" aria-hidden="true">⌄</span></button>
           </div>
         </div>

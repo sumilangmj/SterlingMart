@@ -71,14 +71,14 @@ export function CollectionsPage() {
 
   return (
     <main className="collections-page">
-      <section className="collections-hero shell" aria-labelledby="collections-heading">
+      <section className="collections-hero shell" data-scroll-reveal="collections-hero" aria-labelledby="collections-heading">
         <div className="collections-hero-copy">
           <p className="eyebrow">The complete edit</p>
           <h1 id="collections-heading">Find what feels like you.</h1>
           <p>Explore every SterlingMart piece by silhouette, story, price, and availability. Your next heirloom is closer than you think.</p>
           <Link className="hero-text-link" href="/#collection">See the signature edit <span aria-hidden="true">↗</span></Link>
         </div>
-        <div className="collections-hero-card" aria-label="SterlingMart collection index" role="img">
+        <div className="collections-hero-card" data-scroll-parallax aria-label="SterlingMart collection index" role="img">
           <span>SM / COLLECTIONS</span>
           <strong>Quiet<br />brilliance.</strong>
           <i aria-hidden="true" />
@@ -86,7 +86,7 @@ export function CollectionsPage() {
         </div>
       </section>
 
-      <section className="collections-browser shell" aria-label="Browse the SterlingMart catalog">
+      <section className="collections-browser shell" data-scroll-reveal="collections-browser" aria-label="Browse the SterlingMart catalog">
         <aside className="collections-filters" aria-label="Collection filters">
           <div className="collections-filter-heading">
             <div><p className="eyebrow">Refine your edit</p><h2>Filter</h2></div>

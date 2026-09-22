@@ -22,7 +22,7 @@ export default async function CheckoutSuccessPage({ searchParams }: SuccessPageP
   if (!result) notFound();
 
   return (
-    <section className="shell page-section confirmation-page" aria-labelledby="confirmation-heading">
+    <section className="shell page-section confirmation-page" data-scroll-reveal="confirmation" aria-labelledby="confirmation-heading">
       <div className="confirmation-mark" aria-hidden="true">✓</div>
       <p className="eyebrow">Order received</p>
       <h1 id="confirmation-heading">A good choice.</h1>

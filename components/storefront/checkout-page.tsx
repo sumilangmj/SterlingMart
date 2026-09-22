@@ -28,12 +28,12 @@ export function CheckoutPage() {
   }
 
   if (isLoading) {
-    return <div className="shell page-section"><div className="cart-skeleton" aria-busy="true" aria-label="Loading checkout" /></div>;
+    return <div className="shell page-section" data-scroll-reveal="checkout-loading"><div className="cart-skeleton" aria-busy="true" aria-label="Loading checkout" /></div>;
   }
 
   if (items.length === 0) {
     return (
-      <section className="shell page-section empty-page" aria-labelledby="checkout-heading">
+      <section className="shell page-section empty-page" data-scroll-reveal="checkout-empty" aria-labelledby="checkout-heading">
         <p className="eyebrow">Checkout</p>
         <h1 id="checkout-heading">There’s nothing to check out.</h1>
         <p>Add a piece to your cart, then come back here when you’re ready.</p>
@@ -43,7 +43,7 @@ export function CheckoutPage() {
   }
 
   return (
-    <section className="shell page-section" aria-labelledby="checkout-heading">
+    <section className="shell page-section" data-scroll-reveal="checkout" aria-labelledby="checkout-heading">
       <div className="checkout-heading">
         <Link className="back-link" href="/cart">← Back to cart</Link>
         <p className="eyebrow">Order request</p>

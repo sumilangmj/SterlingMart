@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Role } from "@/lib/types";
 import { BrandLogo } from "@/components/branding/brand-logo";
@@ -79,15 +83,34 @@ function pageTitle(activePage: string) {
 export function DashboardShell({ role, activePage = "dashboard", children }: { role: Role; activePage?: string; children: ReactNode }) {
   const title = pageTitle(activePage);
   const copy = shellCopy[role];
+  const pathname = usePathname();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setNavigationOpen(false));
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname]);
+
+  useEffect(() => {
+    document.body.classList.toggle("dashboard-menu-open", navigationOpen);
+    return () => document.body.classList.remove("dashboard-menu-open");
+  }, [navigationOpen]);
+
+  const closeNavigation = () => setNavigationOpen(false);
+
   return (
-    <section className={`dashboard-page dashboard-page-${role}`} data-role={role} aria-labelledby="dashboard-heading">
-      <aside className="dashboard-rail">
-        <Link className="dashboard-brand" href="/" aria-label="SM Sterling Mart storefront">
-          <BrandLogo className="dashboard-brand-logo" priority />
-          <span className="dashboard-brand-tagline">Fine jewelry<br />for brighter tomorrows</span>
-        </Link>
+    <section className={`dashboard-page dashboard-page-${role}${navigationOpen ? " is-navigation-open" : ""}`} data-role={role} data-scroll-reveal="dashboard" aria-labelledby="dashboard-heading">
+      {navigationOpen && <button className="dashboard-sidebar-scrim" type="button" aria-label="Close dashboard navigation" onClick={closeNavigation} />}
+      <aside className="dashboard-rail" id="dashboard-navigation" aria-label={`${roleLabels[role]} dashboard navigation`}>
+        <div className="dashboard-rail-header">
+          <Link className="dashboard-brand" href="/" aria-label="SM Sterling Mart storefront" onClick={closeNavigation}>
+            <BrandLogo className="dashboard-brand-logo" priority />
+            <span className="dashboard-brand-tagline">Fine jewelry<br />for brighter tomorrows</span>
+          </Link>
+          <button className="dashboard-rail-close" type="button" aria-label="Close dashboard navigation" onClick={closeNavigation}>×</button>
+        </div>
         <nav className="dashboard-nav" aria-label={`${roleLabels[role]} dashboard navigation`}>
-          {dashboardNav[role].map((item) => { const itemKey = item.label.toLowerCase().replaceAll(" ", "-"); return <Link className={`dashboard-nav-item${itemKey === activePage ? " active" : ""}`} href={item.href} key={item.label}><span className="dashboard-nav-icon" aria-hidden="true">{item.icon}</span><span>{item.label}</span></Link>; })}
+          {dashboardNav[role].map((item) => { const itemKey = item.label.toLowerCase().replaceAll(" ", "-"); return <Link className={`dashboard-nav-item${itemKey === activePage ? " active" : ""}`} href={item.href} key={item.label} onClick={closeNavigation}><span className="dashboard-nav-icon" aria-hidden="true">{item.icon}</span><span>{item.label}</span></Link>; })}
         </nav>
         <div className="dashboard-rail-note">
           <span className="dashboard-rail-rule" aria-hidden="true" />
@@ -96,7 +119,7 @@ export function DashboardShell({ role, activePage = "dashboard", children }: { r
         </div>
       </aside>
       <div className="dashboard-workspace">
-        <DashboardTopbar role={role} />
+        <DashboardTopbar role={role} menuOpen={navigationOpen} onMenuToggle={() => setNavigationOpen((current) => !current)} />
         <div className="dashboard-main">
           <div className="dashboard-content">
             <div className="dashboard-heading-row">

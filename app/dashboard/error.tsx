@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function DashboardError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <main className="dashboard-route-error shell" role="alert">
+    <main className="dashboard-route-error shell" data-scroll-reveal="dashboard-error" role="alert">
       <p className="dashboard-page-kicker">SterlingMart workspace</p>
       <h1>We couldn’t load this workspace</h1>
       <p>Something interrupted the live dashboard data request. Try again, or return to the storefront while the connection recovers.</p>

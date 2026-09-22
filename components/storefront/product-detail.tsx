@@ -19,7 +19,7 @@ export function ProductDetail({ product }: { product: Product }) {
   }
 
   return (
-    <section className="product-detail shell">
+    <section className="product-detail shell" data-scroll-reveal="product-detail">
       <div className={`detail-image product-image-${product.accent}`}>
         <Image src={product.imageUrl} alt={product.name} fill priority sizes="(max-width: 767px) 100vw, 58vw" />
       </div>
