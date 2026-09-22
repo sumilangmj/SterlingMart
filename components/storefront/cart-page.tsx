@@ -87,7 +87,7 @@ export function CartPage() {
           <p className="eyebrow">Summary</p>
           <h2 id="summary-heading">Ready when you are.</h2>
           <div className="summary-row"><span>Subtotal</span><strong>{formatPrice(subtotalCents)}</strong></div>
-          <p className="summary-note">Mock checkout only. No payment or delivery details are collected yet.</p>
+          <p className="summary-note">Your order request is checked against live inventory before it is saved. Payment and delivery are completed by the fulfillment team.</p>
           <Link className="button button-dark button-wide" href="/checkout">Continue to checkout <span aria-hidden="true">→</span></Link>
         </aside>
       </div>

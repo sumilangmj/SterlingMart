@@ -25,31 +25,42 @@ export function MobileRuntime() {
     const listeners: Array<{ remove: () => Promise<void> }> = [];
 
     async function configureNativeShell() {
-      const [{ App }, { SplashScreen }, { StatusBar, Style }] = await Promise.all([
-        import("@capacitor/app"),
-        import("@capacitor/splash-screen"),
-        import("@capacitor/status-bar"),
-      ]);
+      try {
+        const [{ App }, { StatusBar, Style }] = await Promise.all([
+          import("@capacitor/app"),
+          import("@capacitor/status-bar"),
+        ]);
 
-      if (disposed) return;
+        if (disposed) return;
 
-      await StatusBar.setOverlaysWebView({ overlay: false });
-      await StatusBar.setStyle({ style: Style.Dark });
-      await SplashScreen.hide({ fadeOutDuration: 250 });
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        await StatusBar.setStyle({ style: Style.Dark });
 
-      const launchUrl = await App.getLaunchUrl();
-      if (launchUrl?.url) navigateToAppUrl(launchUrl.url, (href) => router.replace(href));
+        const launchUrl = await App.getLaunchUrl();
+        if (launchUrl?.url) navigateToAppUrl(launchUrl.url, (href) => router.replace(href));
 
-      listeners.push(
-        await App.addListener("appUrlOpen", ({ url }) => navigateToAppUrl(url, (href) => router.replace(href))),
-        await App.addListener("backButton", ({ canGoBack }) => {
-          if (canGoBack) {
-            window.history.back();
-            return;
-          }
-          void App.exitApp();
-        }),
-      );
+        listeners.push(
+          await App.addListener("appUrlOpen", ({ url }) => navigateToAppUrl(url, (href) => router.replace(href))),
+          await App.addListener("backButton", ({ canGoBack }) => {
+            if (canGoBack) {
+              window.history.back();
+              return;
+            }
+            void App.exitApp();
+          }),
+        );
+      } catch (error) {
+        console.warn("Native shell setup failed; continuing with the storefront.", error);
+      } finally {
+        // Never leave a native user on the splash screen if an optional plugin
+        // or deep-link setup is unavailable.
+        try {
+          const { SplashScreen } = await import("@capacitor/splash-screen");
+          await SplashScreen.hide({ fadeOutDuration: 250 });
+        } catch (error) {
+          console.warn("Native splash cleanup failed.", error);
+        }
+      }
     }
 
     void configureNativeShell();

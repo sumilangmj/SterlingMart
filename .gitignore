@@ -7,3 +7,7 @@ node_modules/
 .clerk/
 .convex/
 .vercel
+public/mobile-app.js
+public/mobile-app.css
+public/mobile-app.js.map
+public/mobile-app.css.map

@@ -1,6 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const serverUrl = process.env.CAPACITOR_SERVER_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
+// Native release builds must load the bundled mobile app from `webDir`.
+// A dev server is still supported, but only when it is explicitly requested.
+const devServerUrl = process.env.CAPACITOR_DEV_SERVER_URL;
 
 const config: CapacitorConfig = {
   appId: "com.sterlingmart.app",
@@ -13,10 +15,10 @@ const config: CapacitorConfig = {
     contentInset: "automatic",
     backgroundColor: "#2f1b10",
   },
-  server: serverUrl
+  server: devServerUrl
     ? {
-        url: serverUrl,
-        cleartext: serverUrl.startsWith("http://"),
+        url: devServerUrl,
+        cleartext: devServerUrl.startsWith("http://"),
       }
     : undefined,
   plugins: {
@@ -24,8 +26,8 @@ const config: CapacitorConfig = {
       disableBackButtonHandler: true,
     },
     SplashScreen: {
-      launchAutoHide: false,
-      launchShowDuration: 5000,
+      launchAutoHide: true,
+      launchShowDuration: 1400,
       launchFadeOutDuration: 250,
       backgroundColor: "#2f1b10",
       showSpinner: false,

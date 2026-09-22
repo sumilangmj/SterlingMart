@@ -26,7 +26,7 @@ export default async function CheckoutSuccessPage({ searchParams }: SuccessPageP
       <div className="confirmation-mark" aria-hidden="true">✓</div>
       <p className="eyebrow">Order received</p>
       <h1 id="confirmation-heading">A good choice.</h1>
-      <p className="confirmation-copy">Your mock order is pending. We’ll keep the details here while the real checkout takes shape.</p>
+      <p className="confirmation-copy">Your order request is pending and connected to the live SterlingMart fulfillment workspace.</p>
       <div className="confirmation-card">
         <div><span>Order reference</span><strong>{result._id.slice(-8).toUpperCase()}</strong></div>
         <div><span>Status</span><strong className="status-label">Pending</strong></div>

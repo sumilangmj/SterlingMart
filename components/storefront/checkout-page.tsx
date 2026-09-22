@@ -46,7 +46,7 @@ export function CheckoutPage() {
     <section className="shell page-section" aria-labelledby="checkout-heading">
       <div className="checkout-heading">
         <Link className="back-link" href="/cart">← Back to cart</Link>
-        <p className="eyebrow">Mock checkout</p>
+        <p className="eyebrow">Order request</p>
         <h1 id="checkout-heading">One last look.</h1>
         <p>Confirm your selection and we’ll create a pending order for your private record.</p>
       </div>
@@ -61,10 +61,10 @@ export function CheckoutPage() {
           <div className="summary-row checkout-total"><span>{itemCount} items</span><strong>{formatPrice(subtotalCents)}</strong></div>
         </div>
         <div className="checkout-action">
-          <div className="mock-note"><span className="mock-note-mark" aria-hidden="true">i</span><p>No payment, shipping, inventory, or fulfillment is connected in this foundation slice.</p></div>
+          <div className="mock-note"><span className="mock-note-mark" aria-hidden="true">i</span><p>Your request is validated against live inventory and saved to your SterlingMart account. Payment and carrier fulfillment still require a configured provider.</p></div>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="button button-dark button-wide" type="button" disabled={isSubmitting} onClick={handleSubmit}>
-            {isSubmitting ? "Creating order…" : "Place mock order"} <span aria-hidden="true">→</span>
+            {isSubmitting ? "Creating order…" : "Place order request"} <span aria-hidden="true">→</span>
           </button>
         </div>
       </div>

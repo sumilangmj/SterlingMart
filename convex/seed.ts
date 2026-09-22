@@ -313,53 +313,9 @@ export const seedWorkspace = mutation({
   },
 });
 
-const demoOrderSeeds = [
-  { key: "demo-1001", customerName: "Ava Sharma", customerEmail: "ava.sharma@example.com", city: "Manila", status: "delivered" as const, productSlug: "aurum-solitaire-ring", quantity: 1 },
-  { key: "demo-1000", customerName: "Rohan Mehta", customerEmail: "rohan.mehta@example.com", city: "Cebu City", status: "shipped" as const, productSlug: "infinity-gold-necklace", quantity: 1 },
-  { key: "demo-0999", customerName: "Priya Kapoor", customerEmail: "priya.kapoor@example.com", city: "Davao City", status: "processing" as const, productSlug: "pearl-drop-earrings", quantity: 1 },
-  { key: "demo-0998", customerName: "Karan Malhotra", customerEmail: "karan.malhotra@example.com", city: "Makati", status: "delivered" as const, productSlug: "aurelia-tennis-bracelet", quantity: 1 },
-  { key: "demo-0997", customerName: "Mika Reyes", customerEmail: "mika.reyes@example.com", city: "Quezon City", status: "confirmed" as const, productSlug: "luna-diamond-pendant", quantity: 1 },
-  { key: "demo-0996", customerName: "Nina Santos", customerEmail: "nina.santos@example.com", city: "Pasig", status: "pending" as const, productSlug: "celeste-signet-ring", quantity: 2 },
-];
-
 export const seedDemoOrders = mutation({
   args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    const email = (identity?.email ?? "").trim().toLowerCase();
-    const adminEmail = (process.env.STERLINGMART_ADMIN_EMAIL ?? "sumilangmj@gmail.com").trim().toLowerCase();
-    if (!identity || email !== adminEmail) throw new Error("Only the configured admin can seed demo orders.");
-
-    const profiles = await ctx.db.query("profiles").collect();
-    const adminProfile = profiles.find((profile) => profile.role === "admin");
-    const customerProfile = profiles.find((profile) => profile.role === "customer");
-    const ownerId = customerProfile?.userId ?? adminProfile?.userId ?? identity.subject;
-    const existing = await ctx.db.query("orders").collect();
-    const existingKeys = new Set(existing.map((order) => order.demoKey).filter(Boolean));
-    let seeded = 0;
-
-    for (const seed of demoOrderSeeds) {
-      if (existingKeys.has(seed.key)) continue;
-      const product = await ctx.db
-        .query("products")
-        .withIndex("by_slug", (q) => q.eq("slug", seed.productSlug))
-        .unique();
-      if (!product) throw new Error(`Missing seeded product: ${seed.productSlug}`);
-      await ctx.db.insert("orders", {
-        userId: ownerId,
-        items: [{ productId: product._id, name: product.name, priceCents: product.priceCents, quantity: seed.quantity }],
-        subtotalCents: product.priceCents * seed.quantity,
-        status: seed.status,
-        customerName: seed.customerName,
-        customerEmail: seed.customerEmail,
-        shippingCity: seed.city,
-        trackingNumber: seed.status === "shipped" || seed.status === "delivered" ? `SMX-${seed.key.slice(-4)}` : undefined,
-        demoKey: seed.key,
-        createdAt: Date.now() - seeded * 86_400_000,
-      });
-      seeded += 1;
-    }
-
-    return { seeded };
+  handler: async () => {
+    throw new Error("Demo order seeding is disabled. Create orders through the live customer checkout flow.");
   },
 });
