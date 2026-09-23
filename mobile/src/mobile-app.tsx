@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 
 type Product = Doc<"products">;
 type ProductId = Id<"products">;
-type Screen = "home" | "shop" | "cart" | "account" | "detail" | "checkout" | "success" | "contact";
+type Screen = "home" | "shop" | "about" | "cart" | "account" | "detail" | "checkout" | "success" | "contact";
 type Route = { screen: Screen; slug?: string; orderId?: string; totalCents?: number };
 type GuestLine = { productId: ProductId; quantity: number; product: Pick<Product, "slug" | "name" | "category" | "imageUrl" | "priceCents"> };
 type AuthMode = "sign-in" | "sign-up" | null;
@@ -38,6 +38,7 @@ function routeFromHash(): Route {
   const hash = window.location.hash.replace(/^#/, "");
   if (hash.startsWith("product/")) return { screen: "detail", slug: decodeURIComponent(hash.slice("product/".length)) };
   if (hash === "shop") return { screen: "shop" };
+  if (hash === "about") return { screen: "about" };
   if (hash === "cart") return { screen: "cart" };
   if (hash === "account") return { screen: "account" };
   if (hash === "contact") return { screen: "contact" };
@@ -48,7 +49,7 @@ function Mark() {
   return <span className="mobile-mark" aria-hidden="true">SM</span>;
 }
 
-function Icon({ name }: { name: "home" | "search" | "bag" | "user" | "heart" | "arrow" | "close" }) {
+function Icon({ name }: { name: "home" | "search" | "bag" | "user" | "heart" | "arrow" | "close" | "menu" }) {
   const paths = {
     home: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9" /><path d="M9 20v-6h6v6" /></>,
     search: <><circle cx="11" cy="11" r="6.5" /><path d="m16 16 5 5" /></>,
@@ -57,24 +58,28 @@ function Icon({ name }: { name: "home" | "search" | "bag" | "user" | "heart" | "
     heart: <path d="M20.8 8.8c0 5.6-8.8 10.2-8.8 10.2S3.2 14.4 3.2 8.8A4.7 4.7 0 0 1 12 6.1a4.7 4.7 0 0 1 8.8 2.7Z" />,
     arrow: <><path d="M4 12h16" /><path d="m14 6 6 6-6 6" /></>,
     close: <><path d="m6 6 12 12" /><path d="m18 6-12 12" /></>,
+    menu: <><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></>,
   };
   return <svg className="mobile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>;
 }
 
-function ProductCard({ product, onOpen, onAdd }: { product: Product; onOpen: (product: Product) => void; onAdd: (product: Product) => void }) {
+function ProductCard({ product, onOpen, onToggleFavorite, onSignIn, isFavorite, isSignedIn }: { product: Product; onOpen: (product: Product) => void; onToggleFavorite: (product: Product) => void; onSignIn: () => void; isFavorite: boolean; isSignedIn: boolean }) {
   return (
     <article className="mobile-product-card">
       <button className="mobile-product-image" type="button" onClick={() => onOpen(product)} aria-label={`View ${product.name}`}>
-        <img src={product.imageUrl} alt="" loading="lazy" />
-        {product.stock !== undefined && product.stock <= 0 && <span className="mobile-sold-out">Sold out</span>}
+        <img src={product.imageUrl} alt={product.name} loading="lazy" />
+        <span className="mobile-product-category mobile-product-category-overlay">{product.category}</span>
+        <span className="mobile-quick-view">Quick view <span aria-hidden="true">↗</span></span>
+      </button>
+      <button className={`mobile-favorite-button${isFavorite ? " is-saved" : ""}`} type="button" onClick={() => isSignedIn ? onToggleFavorite(product) : onSignIn()} aria-label={isFavorite ? `Remove ${product.name} from saved pieces` : `Save ${product.name}`}>
+        <Icon name="heart" />
       </button>
       <div className="mobile-product-meta">
         <div>
-          <p className="mobile-product-category">{product.category}</p>
           <h3>{product.name}</h3>
-          <p className="mobile-product-price">{formatPrice(product.priceCents)}</p>
+          <p className="mobile-product-description">{product.material ?? product.description}</p>
         </div>
-        <button className="mobile-add-button" type="button" onClick={() => onAdd(product)} disabled={product.stock === 0} aria-label={`Add ${product.name} to bag`}>+</button>
+        <div className="mobile-product-card-price"><span className="mobile-product-price">{formatPrice(product.priceCents)}</span>{product.rating && <span className="mobile-product-rating" aria-label={`${product.rating} out of 5 stars`}>★ {product.rating}</span>}</div>
       </div>
     </article>
   );
@@ -88,29 +93,54 @@ function DataMessage({ message, action }: { message: string; action?: React.Reac
   return <div className="mobile-data-message"><p>{message}</p>{action}</div>;
 }
 
-function HomeScreen({ onNavigate, onOpen, onAdd }: { onNavigate: (screen: Screen) => void; onOpen: (product: Product) => void; onAdd: (product: Product) => void }) {
-  const products = useQuery(api.products.catalog, { featured: true, inStock: true, sort: "featured" });
+function HomeScreen({ onNavigate, onOpen, onToggleFavorite, onSignIn, isFavorite, isSignedIn, onAuth }: { onNavigate: (screen: Screen) => void; onOpen: (product: Product) => void; onToggleFavorite: (product: Product) => void; onSignIn: () => void; isFavorite: (product: Product) => boolean; isSignedIn: boolean; onAuth: (mode: "sign-in" | "sign-up") => void }) {
+  const [category, setCategory] = useState("All pieces");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [featuredOnly, setFeaturedOnly] = useState(false);
+  const categories = useQuery(api.products.categories, {});
+  const products = useQuery(api.products.list, { category: category === "All pieces" ? undefined : category, featured: featuredOnly ? true : undefined });
+  const visibleProducts = products?.filter((product) => {
+    const search = searchTerm.trim().toLowerCase();
+    return !search || `${product.name} ${product.category} ${product.collection ?? ""}`.toLowerCase().includes(search);
+  });
   return (
     <main className="mobile-content">
       <section className="mobile-hero">
         <div className="mobile-hero-copy">
-          <p className="mobile-eyebrow">SterlingMart · modern heirlooms</p>
-          <h1>Pieces with a longer view.</h1>
-          <p className="mobile-lead">Fine jewelry chosen for the moments that become part of your story.</p>
-          <button className="mobile-primary-button" type="button" onClick={() => onNavigate("shop")}>Explore the edit <Icon name="arrow" /></button>
+          <p className="mobile-eyebrow">Fine jewelry, thoughtfully made</p>
+          <h1>Pieces that hold the light.</h1>
+          <p className="mobile-lead">Modern heirlooms in gold, diamonds, pearls, and colored stones—selected for the moments you keep.</p>
+          <div className="mobile-hero-actions"><button className="mobile-primary-button" type="button" onClick={() => onNavigate("shop")}>Explore the collection <Icon name="arrow" /></button><button className="mobile-hero-text-button" type="button" onClick={() => onAuth("sign-up")}>Join the circle</button></div>
         </div>
-        <div className="mobile-hero-art"><Mark /><span>quiet brilliance</span><strong>SM</strong></div>
+        <div className="mobile-hero-art" style={{ backgroundImage: 'linear-gradient(rgba(47, 27, 16, .8), rgba(47, 27, 16, .8)), url("/sterling-marble-gold.png")' }} role="img" aria-label="The SM Sterling Mart logo presented on dark gold marble"><span className="mobile-hero-art-note">No. 01<br />The signature edit</span><img src="/sterling-mart-logo.png" alt="" /><span className="mobile-hero-art-label">STERLING / FINE JEWELRY</span></div>
       </section>
-      <section className="mobile-section mobile-section-tight" aria-labelledby="featured-heading">
-        <div className="mobile-section-heading"><div><p className="mobile-eyebrow">The edit</p><h2 id="featured-heading">Featured now</h2></div><button className="mobile-text-button" type="button" onClick={() => onNavigate("shop")}>View all <Icon name="arrow" /></button></div>
-        {products === undefined ? <LoadingGrid /> : products.length === 0 ? <DataMessage message="The live catalog is waiting for its first featured pieces." action={<button className="mobile-text-button" type="button" onClick={() => onNavigate("shop")}>Browse all products <Icon name="arrow" /></button>} /> : <div className="mobile-grid">{products.slice(0, 4).map((product) => <ProductCard key={product._id} product={product} onOpen={onOpen} onAdd={onAdd} />)}</div>}
+      <section className="mobile-section mobile-collection" id="collection" aria-labelledby="collection-heading">
+        <div className="mobile-section-heading"><div><p className="mobile-eyebrow">The collection</p><h2 id="collection-heading">Modern heirlooms.</h2></div><p className="mobile-section-note">A curated edit of pieces designed to be worn, loved, and passed on. <button type="button" onClick={() => onNavigate("shop")}>Browse every piece ↗</button></p></div>
+        <div className="mobile-collection-tools" aria-label="Filter the jewelry collection"><label className="mobile-collection-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search jewelry</span><input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search the collection" type="search" /></label><div className="mobile-collection-filters" role="group" aria-label="Jewelry categories"><button className={category === "All pieces" ? "is-active" : ""} onClick={() => setCategory("All pieces")} type="button">All pieces</button>{(categories ?? ["Rings", "Necklaces", "Earrings", "Bracelets", "Pendants"]).map((item) => <button className={category === item ? "is-active" : ""} key={item} onClick={() => setCategory(item)} type="button">{item}</button>)}</div><label className="mobile-featured-toggle"><input checked={featuredOnly} onChange={(event) => setFeaturedOnly(event.target.checked)} type="checkbox" /> <span>Signature edit</span></label></div>
+        {products === undefined ? <LoadingGrid /> : visibleProducts?.length === 0 ? <DataMessage message="No pieces found." action={<button className="mobile-text-button" type="button" onClick={() => { setSearchTerm(""); setCategory("All pieces"); setFeaturedOnly(false); }}>Reset the edit <Icon name="arrow" /></button>} /> : <div className="mobile-grid">{visibleProducts?.map((product) => <ProductCard key={product._id} product={product} onOpen={onOpen} onToggleFavorite={onToggleFavorite} onSignIn={onSignIn} isSignedIn={isSignedIn} isFavorite={isFavorite(product)} />)}</div>}
       </section>
-      <section className="mobile-story-card"><p className="mobile-eyebrow">A considered collection</p><h2>Designed to live beyond a single occasion.</h2><button className="mobile-text-button" type="button" onClick={() => onNavigate("contact")}>Talk with our team <Icon name="arrow" /></button></section>
+      <section className="mobile-manifesto-band"><div className="mobile-manifesto-inner"><p className="mobile-eyebrow">Our point of view</p><p className="mobile-manifesto-copy">Jewelry should feel like you: considered, luminous, and entirely your own.</p><button className="mobile-underlined-link" type="button" onClick={() => onNavigate("shop")}>Browse the edit <span aria-hidden="true">↗</span></button></div></section>
     </main>
   );
 }
 
-function ShopScreen({ onOpen, onAdd, search, setSearch, category, setCategory }: { onOpen: (product: Product) => void; onAdd: (product: Product) => void; search: string; setSearch: (value: string) => void; category: string; setCategory: (value: string) => void }) {
+function AboutScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+  const content = useQuery(api.site.content, {});
+  if (content === undefined) return <main className="mobile-content mobile-page-content"><LoadingGrid /></main>;
+  return (
+    <main className="mobile-about-page">
+      <section className="mobile-about-hero mobile-content">
+        <div className="mobile-about-hero-copy"><p className="mobile-eyebrow">{content.aboutEyebrow}</p><h1>{content.aboutTitle}</h1><p className="mobile-about-intro">{content.aboutIntro}</p><button className="mobile-primary-button" type="button" onClick={() => onNavigate("shop")}>Explore the collection <Icon name="arrow" /></button></div>
+        <div className="mobile-about-art" style={{ backgroundImage: 'linear-gradient(rgba(47, 27, 16, .68), rgba(47, 27, 16, .68)), url("/sterling-marble-gold.png")' }} role="img" aria-label="The SM Sterling Mart logo on warm gold marble"><span>SM / 01</span><img src="/sterling-mart-logo.png" alt="" /><small>Jewelry lives forever</small></div>
+      </section>
+      <section className="mobile-about-story mobile-content"><div className="mobile-about-story-label"><p className="mobile-eyebrow">The story</p><span>01</span></div><div><h2>A quieter kind of luxury.</h2><p>{content.aboutBody}</p><p className="mobile-about-signature">SterlingMart Atelier <span aria-hidden="true">✦</span></p></div></section>
+      <section className="mobile-about-values mobile-content"><div className="mobile-about-section-heading"><p className="mobile-eyebrow">What guides us</p><h2>Chosen with intention.</h2></div><div className="mobile-about-values-grid">{content.aboutValues.map((value, index) => <article key={value.title}><span>0{index + 1}</span><h3>{value.title}</h3><p>{value.detail}</p></article>)}</div></section>
+      <section className="mobile-about-cta"><div className="mobile-content"><p className="mobile-eyebrow">The next chapter</p><h2>Find the piece that becomes part of your story.</h2><button className="mobile-light-button" type="button" onClick={() => onNavigate("shop")}>Explore the collection <Icon name="arrow" /></button></div></section>
+    </main>
+  );
+}
+
+function ShopScreen({ onOpen, onToggleFavorite, onSignIn, isFavorite, isSignedIn, search, setSearch, category, setCategory }: { onOpen: (product: Product) => void; onToggleFavorite: (product: Product) => void; onSignIn: () => void; isFavorite: (product: Product) => boolean; isSignedIn: boolean; search: string; setSearch: (value: string) => void; category: string; setCategory: (value: string) => void }) {
   const products = useQuery(api.products.catalog, { search: search.trim() || undefined, categories: category ? [category] : undefined, inStock: true, sort: "featured" });
   const categories = useQuery(api.products.categories, {});
   return (
@@ -118,7 +148,7 @@ function ShopScreen({ onOpen, onAdd, search, setSearch, category, setCategory }:
       <div className="mobile-page-heading"><p className="mobile-eyebrow">The live catalog</p><h1>Find your piece.</h1><p>Every result below is read from the active SterlingMart inventory.</p></div>
       <label className="mobile-search"><Icon name="search" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search jewelry, material, stone" aria-label="Search the catalog" /></label>
       <div className="mobile-filter-row" role="list" aria-label="Filter by category"><button className={!category ? "is-active" : ""} type="button" onClick={() => setCategory("")}>All</button>{categories?.map((item) => <button className={category === item ? "is-active" : ""} type="button" key={item} onClick={() => setCategory(item)}>{item}</button>)}</div>
-      {products === undefined ? <LoadingGrid /> : products.length === 0 ? <DataMessage message="No live products match those filters." /> : <div className="mobile-grid">{products.map((product) => <ProductCard key={product._id} product={product} onOpen={onOpen} onAdd={onAdd} />)}</div>}
+      {products === undefined ? <LoadingGrid /> : products.length === 0 ? <DataMessage message="No live products match those filters." /> : <div className="mobile-grid">{products.map((product) => <ProductCard key={product._id} product={product} onOpen={onOpen} onToggleFavorite={onToggleFavorite} onSignIn={onSignIn} isSignedIn={isSignedIn} isFavorite={isFavorite(product)} />)}</div>}
     </main>
   );
 }
@@ -241,6 +271,10 @@ function ContactScreen({ onBack }: { onBack: () => void }) {
   return <main className="mobile-content mobile-page-content"><button className="mobile-back-button" type="button" onClick={onBack}>← Back</button><div className="mobile-page-heading"><p className="mobile-eyebrow">{liveContent?.contactEyebrow ?? "The SterlingMart salon"}</p><h1>{liveContent?.contactTitle ?? "Let’s find your next heirloom."}</h1><p>{liveContent?.contactIntro ?? "Tell us what you’re looking for."}</p></div>{liveContent ? <div className="mobile-contact-details"><a href={`mailto:${liveContent.contactEmail}`}>{liveContent.contactEmail}</a><a href={`tel:${liveContent.contactPhone.replace(/[^+\d]/g, "")}`}>{liveContent.contactPhone}</a><span>{liveContent.contactHours}</span></div> : <DataMessage message="The salon has not published contact details yet. You can still send a message below." />}<form className="mobile-form" onSubmit={submit}><label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label><label>Email<input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label><label>Subject<input required value={form.subject} onChange={(event) => setForm({ ...form, subject: event.target.value })} /></label><label>Message<textarea required rows={5} value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} /></label>{error && <p className="mobile-error" role="alert">{error}</p>}<button className="mobile-primary-button mobile-wide-button" type="submit">Send message <Icon name="arrow" /></button></form></main>;
 }
 
+function MobileFooter({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+  return <footer className="mobile-footer"><div className="mobile-footer-inner"><div className="mobile-footer-brand"><Mark /><div><strong>STERLING MART</strong><p>Fine pieces, chosen with intention.</p></div></div><nav aria-label="Footer navigation"><button type="button" onClick={() => onNavigate("home")}>Home</button><button type="button" onClick={() => onNavigate("about")}>About us</button><button type="button" onClick={() => onNavigate("shop")}>Collections</button><button type="button" onClick={() => onNavigate("contact")}>Contact</button></nav><p className="mobile-footer-copyright">© 2026 SterlingMart</p></div></footer>;
+}
+
 export function MobileApp() {
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
@@ -253,6 +287,7 @@ export function MobileApp() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const remoteCart = useQuery(api.cart.get, isSignedIn ? {} : "skip");
   const profile = useQuery(api.profiles.current, isSignedIn ? {} : "skip");
@@ -293,6 +328,7 @@ export function MobileApp() {
     const hash = screen === "detail" && options.slug ? `#product/${encodeURIComponent(options.slug)}` : screen === "home" ? "#home" : `#${screen}`;
     window.history.pushState(next, "", hash);
     setRoute(next);
+    setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -344,6 +380,5 @@ export function MobileApp() {
     try { const result = await createOrder({}); navigate("success", { orderId: result.orderId, totalCents: result.subtotalCents }); } catch (reason) { setCheckoutError(reason instanceof Error ? reason.message : "The order could not be created. Your bag is still safe."); } finally { setIsSubmitting(false); }
   }
 
-  const activeNav = route.screen === "detail" || route.screen === "shop" ? "shop" : route.screen === "cart" || route.screen === "checkout" || route.screen === "success" ? "cart" : route.screen === "account" ? "account" : "home";
-  return <div className="mobile-app"><header className="mobile-header"><button className="mobile-wordmark" type="button" onClick={() => navigate("home")}><Mark /><span>STERLING MART</span></button><button className="mobile-header-action" type="button" onClick={() => navigate("account")} aria-label="Open account"><Icon name="user" />{isSignedIn && <span className="mobile-live-dot" />}</button></header>{actionError && <div className="mobile-toast" role="alert">{actionError}<button type="button" onClick={() => setActionError(null)} aria-label="Dismiss"><Icon name="close" /></button></div>}{route.screen === "home" && <HomeScreen onNavigate={(screen) => navigate(screen)} onOpen={(product) => navigate("detail", { slug: product.slug })} onAdd={addItem} />}{route.screen === "shop" && <ShopScreen onOpen={(product) => navigate("detail", { slug: product.slug })} onAdd={addItem} search={search} setSearch={setSearch} category={category} setCategory={setCategory} />}{route.screen === "detail" && <DetailScreen product={detailProduct} onBack={() => navigate("shop")} onAdd={addItem} onToggleFavorite={saveFavorite} isFavorite={Boolean(detailProduct && favorites.includes(detailProduct._id))} isSignedIn={Boolean(isSignedIn)} onSignIn={() => setAuthMode("sign-in")} />}{route.screen === "cart" && <CartScreen items={items} itemCount={itemCount} subtotalCents={subtotalCents} isLoading={cartLoading} onQuantity={setQuantity} onRemove={removeItem} onNavigate={(screen) => navigate(screen)} />}{route.screen === "checkout" && <CheckoutScreen items={items} subtotalCents={subtotalCents} isSignedIn={Boolean(isSignedIn)} onSignIn={() => setAuthMode("sign-in")} onPlaceOrder={placeOrder} isSubmitting={isSubmitting} error={checkoutError} />}{route.screen === "success" && <main className="mobile-content mobile-page-content mobile-success"><div className="mobile-success-mark">✓</div><p className="mobile-eyebrow">Order received</p><h1>It’s in your records.</h1><p>Your order is pending and visible to the SterlingMart team for the next fulfillment step.</p><div className="mobile-success-card"><span>Reference</span><strong>#{route.orderId?.slice(-8).toUpperCase()}</strong><span>Status</span><strong>Pending</strong><span>Subtotal</span><strong>{formatPrice(route.totalCents ?? 0)}</strong></div><button className="mobile-primary-button mobile-wide-button" type="button" onClick={() => navigate("account")}>View your account <Icon name="arrow" /></button></main>}{route.screen === "account" && <AccountScreen isLoaded={isLoaded} isSignedIn={Boolean(isSignedIn)} user={user} profile={profile} orders={orders} onAuth={setAuthMode} onSignOut={() => void signOut()} onNavigate={(screen) => navigate(screen)} onContact={() => navigate("contact")} />}{route.screen === "contact" && <ContactScreen onBack={() => navigate("home")} />}{!authMode && <nav className="mobile-tab-bar" aria-label="Primary navigation"><button className={activeNav === "home" ? "is-active" : ""} type="button" onClick={() => navigate("home")}><Icon name="home" /><span>Home</span></button><button className={activeNav === "shop" ? "is-active" : ""} type="button" onClick={() => navigate("shop")}><Icon name="search" /><span>Shop</span></button><button className={activeNav === "cart" ? "is-active" : ""} type="button" onClick={() => navigate("cart")}><span className="mobile-bag-icon"><Icon name="bag" />{itemCount > 0 && <b>{itemCount > 99 ? "99+" : itemCount}</b>}</span><span>Bag</span></button><button className={activeNav === "account" ? "is-active" : ""} type="button" onClick={() => navigate("account")}><Icon name="user" /><span>Account</span></button></nav>}{authMode && <div className="mobile-auth-overlay" role="dialog" aria-modal="true"><div className="mobile-auth-sheet"><button className="mobile-auth-close" type="button" onClick={() => setAuthMode(null)} aria-label="Close authentication"><Icon name="close" /></button><AuthForm mode={authMode} onClose={() => setAuthMode(null)} onSwitch={setAuthMode} /></div></div>}</div>;
+  return <div className="mobile-app"><header className="mobile-header"><button className="mobile-wordmark" type="button" onClick={() => navigate("home")}><Mark /><span>STERLING MART</span></button><div className="mobile-header-actions"><button className="mobile-cart-link" type="button" onClick={() => navigate("cart")} aria-label={`Cart, ${itemCount} items`}><Icon name="bag" />{itemCount > 0 && <span>{itemCount > 99 ? "99+" : itemCount}</span>}</button><button className="mobile-menu-toggle" type="button" onClick={() => setMenuOpen((current) => !current)} aria-expanded={menuOpen} aria-controls="mobile-site-navigation" aria-label={menuOpen ? "Close menu" : "Open menu"}><Icon name={menuOpen ? "close" : "menu"} /></button></div></header>{menuOpen && <div className="mobile-nav-panel" id="mobile-site-navigation"><nav aria-label="Mobile navigation" className="mobile-nav-links"><button type="button" onClick={() => navigate("home")}>Home</button><button type="button" onClick={() => navigate("about")}>About us</button><button type="button" onClick={() => navigate("shop")}>Collections</button><button type="button" onClick={() => navigate("contact")}>Contact</button><button type="button" onClick={() => navigate("cart")}>Cart <span>{itemCount}</span></button></nav><div className="mobile-nav-account">{isSignedIn ? <button className="mobile-nav-account-link" type="button" onClick={() => navigate("account")}><Icon name="user" /> Your account</button> : <><button className="mobile-nav-sign-in" type="button" onClick={() => { setMenuOpen(false); setAuthMode("sign-in"); }}>Sign in</button><button className="mobile-nav-join" type="button" onClick={() => { setMenuOpen(false); setAuthMode("sign-up"); }}>Create account</button></>}</div></div>}{actionError && <div className="mobile-toast" role="alert">{actionError}<button type="button" onClick={() => setActionError(null)} aria-label="Dismiss"><Icon name="close" /></button></div>}{route.screen === "home" && <HomeScreen onNavigate={(screen) => navigate(screen)} onOpen={(product) => navigate("detail", { slug: product.slug })} onToggleFavorite={saveFavorite} onSignIn={() => setAuthMode("sign-in")} isFavorite={(product) => favorites.includes(product._id)} isSignedIn={Boolean(isSignedIn)} onAuth={setAuthMode} />}{route.screen === "shop" && <ShopScreen onOpen={(product) => navigate("detail", { slug: product.slug })} onToggleFavorite={saveFavorite} onSignIn={() => setAuthMode("sign-in")} isFavorite={(product) => favorites.includes(product._id)} isSignedIn={Boolean(isSignedIn)} search={search} setSearch={setSearch} category={category} setCategory={setCategory} />}{route.screen === "about" && <AboutScreen onNavigate={(screen) => navigate(screen)} />}{route.screen === "detail" && <DetailScreen product={detailProduct} onBack={() => navigate("shop")} onAdd={addItem} onToggleFavorite={saveFavorite} isFavorite={Boolean(detailProduct && favorites.includes(detailProduct._id))} isSignedIn={Boolean(isSignedIn)} onSignIn={() => setAuthMode("sign-in")} />}{route.screen === "cart" && <CartScreen items={items} itemCount={itemCount} subtotalCents={subtotalCents} isLoading={cartLoading} onQuantity={setQuantity} onRemove={removeItem} onNavigate={(screen) => navigate(screen)} />}{route.screen === "checkout" && <CheckoutScreen items={items} subtotalCents={subtotalCents} isSignedIn={Boolean(isSignedIn)} onSignIn={() => setAuthMode("sign-in")} onPlaceOrder={placeOrder} isSubmitting={isSubmitting} error={checkoutError} />}{route.screen === "success" && <main className="mobile-content mobile-page-content mobile-success"><div className="mobile-success-mark">✓</div><p className="mobile-eyebrow">Order received</p><h1>It’s in your records.</h1><p>Your order is pending and visible to the SterlingMart team for the next fulfillment step.</p><div className="mobile-success-card"><span>Reference</span><strong>#{route.orderId?.slice(-8).toUpperCase()}</strong><span>Status</span><strong>Pending</strong><span>Subtotal</span><strong>{formatPrice(route.totalCents ?? 0)}</strong></div><button className="mobile-primary-button mobile-wide-button" type="button" onClick={() => navigate("account")}>View your account <Icon name="arrow" /></button></main>}{route.screen === "account" && <AccountScreen isLoaded={isLoaded} isSignedIn={Boolean(isSignedIn)} user={user} profile={profile} orders={orders} onAuth={setAuthMode} onSignOut={() => void signOut()} onNavigate={(screen) => navigate(screen)} onContact={() => navigate("contact")} />}{route.screen === "contact" && <ContactScreen onBack={() => navigate("home")} />}<MobileFooter onNavigate={(screen) => navigate(screen)} />{authMode && <div className="mobile-auth-overlay" role="dialog" aria-modal="true"><div className="mobile-auth-sheet"><button className="mobile-auth-close" type="button" onClick={() => setAuthMode(null)} aria-label="Close authentication"><Icon name="close" /></button><AuthForm mode={authMode} onClose={() => setAuthMode(null)} onSwitch={setAuthMode} /></div></div>}</div>;
 }
