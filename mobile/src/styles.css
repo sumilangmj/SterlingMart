@@ -116,6 +116,7 @@ h3 { margin: 0; font-size: 1.05rem; }
 .mobile-avatar { display: grid; place-items: center; flex: 0 0 auto; width: 54px; height: 54px; border-radius: 50%; background: var(--mobile-ink); color: #e8c889; font: 25px Georgia, serif; }
 .mobile-account-actions { display: grid; margin-bottom: 38px; border-top: 1px solid var(--mobile-line); }
 .mobile-account-actions button { display: flex; justify-content: space-between; align-items: center; border: 0; border-bottom: 1px solid var(--mobile-line); background: transparent; padding: 15px 0; font-size: 13px; text-align: left; }
+.mobile-account-actions .mobile-account-sign-out { color: #8d382c; }
 .mobile-account-section h2 { margin: 0; font-size: 2rem; }
 .mobile-order-list { display: grid; border-top: 1px solid var(--mobile-line); }
 .mobile-order-row { display: flex; justify-content: space-between; gap: 13px; border-bottom: 1px solid var(--mobile-line); padding: 14px 0; }
@@ -167,6 +168,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .mobile-nav-account { display: flex; flex-wrap: wrap; gap: 10px; padding: 18px 20px 20px; }
 .mobile-nav-account button { min-height: 40px; border: 1px solid var(--mobile-gold); padding: 8px 12px; background: transparent; color: #fff4df; font-size: 12px; }
 .mobile-nav-account .mobile-nav-account-link { display: inline-flex; align-items: center; gap: 8px; }
+.mobile-nav-account .mobile-nav-sign-out { border-color: rgba(255, 244, 223, .55); }
 .mobile-nav-account .mobile-nav-join { background: var(--mobile-gold); color: var(--mobile-ink); }
 .mobile-content { width: min(100%, 1200px); padding: 0 16px 68px; }
 .mobile-hero { gap: 44px; padding: 58px 0 72px; }

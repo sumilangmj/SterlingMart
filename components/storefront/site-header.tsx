@@ -1,6 +1,6 @@
 "use client";
 
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, SignUpButton, UserButton, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -9,9 +9,25 @@ import { BrandLogo } from "@/components/branding/brand-logo";
 
 export function SiteHeader() {
   const { itemCount } = useCart();
+  const { signOut } = useClerk();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const isCurrent = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  async function handleSignOut() {
+    if (isSigningOut) return;
+    setSignOutError(null);
+    setIsSigningOut(true);
+    setMobileMenuOpen(false);
+    try {
+      await signOut({ redirectUrl: "/" });
+    } catch {
+      setSignOutError("Logout failed. Try again.");
+      setIsSigningOut(false);
+    }
+  }
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setMobileMenuOpen(false));
@@ -57,7 +73,9 @@ export function SiteHeader() {
             )}
           >
             <Link className="text-button dashboard-link" href="/dashboard">Dashboard</Link>
+            <button className="text-button header-sign-out" type="button" disabled={isSigningOut} onClick={() => void handleSignOut()}>{isSigningOut ? "Signing out…" : "Sign out"}</button>
             <UserButton />
+            {signOutError && <span className="header-account-error" role="alert">{signOutError}</span>}
           </Show>
         </div>
 
@@ -97,7 +115,9 @@ export function SiteHeader() {
               )}
             >
               <Link className="mobile-nav-sign-in" href="/dashboard">Dashboard</Link>
+              <button className="mobile-nav-sign-out" type="button" disabled={isSigningOut} onClick={() => void handleSignOut()}>{isSigningOut ? "Signing out…" : "Sign out"}</button>
               <UserButton />
+              {signOutError && <span className="header-account-error" role="alert">{signOutError}</span>}
             </Show>
           </div>
         </div>

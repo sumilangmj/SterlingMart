@@ -1,6 +1,6 @@
 "use client";
 
-import { UserButton, useAuth } from "@clerk/nextjs";
+import { UserButton, useAuth, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
@@ -46,10 +46,13 @@ const roleQuickLinks: Record<Role, Array<{ label: string; href: string; detail: 
 
 export function DashboardTopbar({ role, period = "30D", menuOpen = false, onMenuToggle }: { role: Role; period?: Period; menuOpen?: boolean; onMenuToggle?: () => void }) {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const { signOut } = useClerk();
   const router = useRouter();
   const [modal, setModal] = useState<Modal>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>(period);
   const [search, setSearch] = useState("");
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const dialogInputRef = useRef<HTMLInputElement>(null);
   const dialogCloseRef = useRef<HTMLButtonElement>(null);
   const notifications = useQuery(api.notifications.list, authLoaded && isSignedIn && modal === "notifications" ? {} : "skip");
@@ -83,6 +86,18 @@ export function DashboardTopbar({ role, period = "30D", menuOpen = false, onMenu
     setSelectedPeriod(nextPeriod);
     window.dispatchEvent(new CustomEvent<Period>("sterling-period-change", { detail: nextPeriod }));
     setModal(null);
+  }
+
+  async function handleSignOut() {
+    if (isSigningOut) return;
+    setSignOutError(null);
+    setIsSigningOut(true);
+    try {
+      await signOut({ redirectUrl: "/" });
+    } catch (reason) {
+      setSignOutError(reason instanceof Error ? reason.message : "We couldn’t sign you out. Please try again.");
+      setIsSigningOut(false);
+    }
   }
 
   const currentPeriod = periods.find((item) => item.key === selectedPeriod) ?? periods[1];
@@ -119,7 +134,7 @@ export function DashboardTopbar({ role, period = "30D", menuOpen = false, onMenu
 
           {modal === "notifications" && <div className="dashboard-notification-modal-content">{!authLoaded || (isSignedIn && notifications === undefined) ? <p className="dashboard-modal-loading">Loading your latest updates…</p> : !isSignedIn ? <p className="dashboard-modal-empty">Sign in again to view workspace notifications.</p> : notifications?.length ? <div className="dashboard-notification-list">{notifications.slice(0, 6).map((notification) => <article className={`dashboard-notification-row${notification.read ? " is-read" : ""}`} key={notification._id}><span className={`dashboard-notification-mark dashboard-notification-mark-${notification.kind}`} aria-hidden="true">{notification.kind === "order" ? "▤" : notification.kind === "inventory" ? "◇" : notification.kind === "account" ? "♧" : "✦"}</span><div><strong>{notification.title}</strong><p>{notification.message}</p><small>{formatDate(notification.createdAt)}</small></div>{!notification.read && <button type="button" onClick={() => void markRead({ notificationId: notification._id })}>Mark read</button>}</article>)}</div> : <p className="dashboard-modal-empty">You’re all caught up. New activity will appear here as your workspace changes.</p>}<Link className="dashboard-modal-secondary" href={`/dashboard/${role}/notifications`} onClick={() => setModal(null)}>Open notification center <span aria-hidden="true">↗</span></Link></div>}
 
-          {modal === "account" && <div className="dashboard-account-modal-content"><div className="dashboard-account-intro"><span className={`dashboard-account-avatar dashboard-user-avatar-${role}`} aria-hidden="true">{role === "admin" ? "S" : role.charAt(0).toUpperCase()}</span><div><strong>{role === "admin" ? "Store Admin" : `${roleLabels[role]} Account`}</strong><p>{roleQuickLinks[role][0].detail}</p></div></div><div className="dashboard-account-links">{roleQuickLinks[role].map((item) => <Link href={item.href} key={item.href} onClick={() => setModal(null)}><span><strong>{item.label}</strong><small>{item.detail}</small></span><b aria-hidden="true">↗</b></Link>)}</div><div className="dashboard-account-footer"><Link className="dashboard-modal-secondary" href="/" onClick={() => setModal(null)}>Return to storefront <span aria-hidden="true">↗</span></Link><div className="dashboard-clerk-control"><span>Account controls</span><UserButton /></div></div></div>}
+          {modal === "account" && <div className="dashboard-account-modal-content"><div className="dashboard-account-intro"><span className={`dashboard-account-avatar dashboard-user-avatar-${role}`} aria-hidden="true">{role === "admin" ? "S" : role.charAt(0).toUpperCase()}</span><div><strong>{role === "admin" ? "Store Admin" : `${roleLabels[role]} Account`}</strong><p>{roleQuickLinks[role][0].detail}</p></div></div><div className="dashboard-account-links">{roleQuickLinks[role].map((item) => <Link href={item.href} key={item.href} onClick={() => setModal(null)}><span><strong>{item.label}</strong><small>{item.detail}</small></span><b aria-hidden="true">↗</b></Link>)}</div><div className="dashboard-account-footer"><div className="dashboard-account-footer-actions"><Link className="dashboard-modal-secondary" href="/" onClick={() => setModal(null)}>Return to storefront <span aria-hidden="true">↗</span></Link><button className="dashboard-account-sign-out" type="button" disabled={isSigningOut} aria-busy={isSigningOut} onClick={() => void handleSignOut()}>{isSigningOut ? "Signing out…" : "Sign out"}<span aria-hidden="true">↗</span></button>{signOutError && <p className="dashboard-account-error" role="alert">{signOutError}</p>}</div><div className="dashboard-clerk-control"><span>Account controls</span><UserButton /></div></div></div>}
         </section>
       </div>}
     </>
